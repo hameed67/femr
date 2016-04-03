@@ -21,7 +21,6 @@ package femr.common;
 import femr.business.helpers.LogicDoer;
 import femr.common.models.*;
 import femr.data.models.core.*;
-import femr.data.models.mysql.PatientPrescription;
 import femr.util.calculations.dateUtils;
 import femr.util.stringhelpers.StringUtils;
 import org.joda.time.DateTime;
@@ -58,7 +57,7 @@ public class ItemModelMapper implements IItemModelMapper {
      * {@inheritDoc}
      */
     @Override
-    public MedicationItem createMedicationItem(IMedication medication, Integer quantityCurrent, Integer quantityTotal) {
+    public MedicationItem createMedicationItem(IMedication medication, Integer quantityCurrent, Integer quantityTotal, DateTime isDeleted) {
 
         if (medication == null) {
 
@@ -86,6 +85,10 @@ public class ItemModelMapper implements IItemModelMapper {
         }
 
         medicationItem.setFullName(medicationItem.getName().concat(" " + fullActiveDrugName));
+
+        //Check to see if medication is deleted.
+        if(isDeleted != null)
+            medicationItem.setIsDeleted(isDeleted);
 
         return medicationItem;
     }
@@ -280,7 +283,8 @@ public class ItemModelMapper implements IItemModelMapper {
      */
     @Override
     public PrescriptionItem createPrescriptionItem(int id, String name, String originalMedicationName, String firstName, String lastName,
-                                                   IMedicationAdministration medicationAdministration, Integer amount, IMedication medication) {
+                                                   IMedicationAdministration medicationAdministration, Integer amount, IMedication medication,
+                                                   Integer medicationRemaining, Boolean isCounseled) {
 
         if (StringUtils.isNullOrWhiteSpace(name)) {
 
@@ -299,22 +303,24 @@ public class ItemModelMapper implements IItemModelMapper {
             prescriptionItem.setPrescriberLastName(lastName);
 
         if (medicationAdministration != null) {
-            prescriptionItem.setAdministrationId(medicationAdministration.getId());
+            prescriptionItem.setAdministrationID(medicationAdministration.getId());
             prescriptionItem.setAdministrationName(medicationAdministration.getName());
             prescriptionItem.setAdministrationModifier(medicationAdministration.getDailyModifier());
         }
         if (amount != null)
             prescriptionItem.setAmount(amount);
 
+        if (isCounseled != null)
+            prescriptionItem.setCounseled(isCounseled);
+
         if (medication != null) {
-            MedicationItem medicationItem = createMedicationItem(medication, null, null);
+            MedicationItem medicationItem = createMedicationItem(medication, null, null, null);
             prescriptionItem.setMedicationID(medicationItem.getId());
 
             if (medicationItem.getForm() != null)
                 prescriptionItem.setMedicationForm(medicationItem.getForm());
 
-            prescriptionItem.setMedicationRemaining(medicationItem.getQuantity_current());
-
+            prescriptionItem.setMedicationRemaining(medicationRemaining);
 
 
             if (medicationItem.getActiveIngredients() != null)

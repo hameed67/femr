@@ -86,8 +86,6 @@ public class SearchService implements ISearchService {
             return response;
         }
 
-
-
         //get patient encounters so we can use the newest one
         Query<PatientEncounter> peQuery = QueryProvider.getPatientEncounterQuery()
                 .where()
@@ -142,8 +140,12 @@ public class SearchService implements ISearchService {
             }
 
             // If metric setting enabled convert response patientItem to metric
-            if (isMetric())
+            if (isMetric()){
                 patientItem = LocaleUnitConverter.toMetric(patientItem);
+            }else {
+               //added for femr-136 - dual unit display
+                patientItem = LocaleUnitConverter.forDualUnitDisplay(patientItem);
+            }
 
             response.setResponseObject(patientItem);
         } catch (Exception ex) {
@@ -313,14 +315,16 @@ public class SearchService implements ISearchService {
                     .stream()
                     .filter(pp -> pp.getPatientPrescriptionReplacements() == null || pp.getPatientPrescriptionReplacements().size() == 0)
                     .map(pp -> itemModelMapper.createPrescriptionItem(
-                        pp.getId(),
-                        pp.getMedication().getName(),
-                        null,
-                        pp.getPhysician().getFirstName(),
-                        pp.getPhysician().getLastName(),
-                        pp.getMedicationAdministration(),
-                        pp.getAmount(),
-                        pp.getMedication()
+                            pp.getId(),
+                            pp.getMedication().getName(),
+                            null,
+                            pp.getPhysician().getFirstName(),
+                            pp.getPhysician().getLastName(),
+                            pp.getMedicationAdministration(),
+                            pp.getAmount(),
+                            pp.getMedication(),
+                            null,
+                            pp.isCounseled()
 
                     ))
                     .collect(Collectors.toList());
@@ -358,7 +362,9 @@ public class SearchService implements ISearchService {
                             pp.getPhysician().getLastName(),
                             pp.getMedicationAdministration(),
                             pp.getAmount(),
-                            pp.getMedication()
+                            pp.getMedication(),
+                            null,
+                            pp.isCounseled()
                     ))
                     .collect(Collectors.toList());
             List<PrescriptionItem> replacedPrescriptions = patientPrescriptions.stream()
@@ -371,7 +377,9 @@ public class SearchService implements ISearchService {
                             pp.getPhysician().getLastName(),
                             pp.getMedicationAdministration(),
                             pp.getAmount(),
-                            pp.getMedication()
+                            pp.getMedication(),
+                            null,
+                            pp.isCounseled()
                     ))
                     .collect(Collectors.toList());
             prescriptionItems.addAll(replacedPrescriptions);

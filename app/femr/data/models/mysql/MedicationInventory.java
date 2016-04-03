@@ -4,6 +4,7 @@ import femr.data.models.core.IMedicationInventory;
 import femr.data.models.core.IMedication;
 import femr.data.models.core.IMedicationInventory;
 import femr.data.models.core.IMissionTrip;
+import org.joda.time.DateTime;
 
 import javax.persistence.*;
 
@@ -19,13 +20,16 @@ public class MedicationInventory implements IMedicationInventory{
     @Column(name = "quantity_initial", unique = false, nullable = true)
     private Integer quantity_initial;
 
-//    @ManyToOne(fetch = FetchType.EAGER)
-//    @JoinColumn(name = "medication_id")
+    @ManyToOne(fetch = FetchType.EAGER)
+    @JoinColumn(name = "medication_id")
     private Medication medication;
 
     @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "mission_trip_id")
     private MissionTrip missionTrip;
+
+    @Column(name = "isDeleted", nullable = true)
+    private DateTime isDeleted;
 
     @Override
     public int getId() {
@@ -71,4 +75,14 @@ public class MedicationInventory implements IMedicationInventory{
 
     @Override
     public void setMissionTrip(IMissionTrip missionTrip) { this.missionTrip = (MissionTrip) missionTrip; }
+
+    @Override
+    public DateTime getIsDeleted() {
+        return isDeleted;
+    }
+
+    @Override
+    public void setIsDeleted(DateTime isDeleted) {
+        this.isDeleted = isDeleted;
+    }
 }

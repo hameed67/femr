@@ -20,7 +20,6 @@ package femr.common;
 
 import femr.common.models.*;
 import femr.data.models.core.*;
-import femr.data.models.mysql.MedicationInventory;
 import org.joda.time.DateTime;
 
 import java.util.Date;
@@ -51,9 +50,10 @@ public interface IItemModelMapper {
      * @param medication the medication data bean, not null
      * @param quantityCurrent the quantity of the medication available, nullable if non existant
      * @param quantityTotal the total quantity of a medication, nullable if non existant
+     * @param isDeleted if the medication was deleted form the inventory
      * @return a new MedicationItem or null if processing fails
      */
-    MedicationItem createMedicationItem(IMedication medication, Integer quantityCurrent, Integer quantityTotal);
+    MedicationItem createMedicationItem(IMedication medication, Integer quantityCurrent, Integer quantityTotal, DateTime isDeleted);
 
     /**
      * Generate and provide an instance of MissionItem.
@@ -138,10 +138,12 @@ public interface IItemModelMapper {
      * @param medicationAdministration
      * @param amount
      * @param medication
+     * @param medicationRemaining how much of the medication required for this prescription is remaining in the inventory, may be null
+     * @param isCounseled indicates whether or not the pharmacist checked the checkbox indicating that they counseled the patient on this prescription, may be null
      * @return a new PrescriptionItem or null if processing fails
      */
     PrescriptionItem createPrescriptionItem(int id, String name, String originalMedicationName, String firstName, String lastName,
-                                            IMedicationAdministration medicationAdministration, Integer amount, IMedication medication);
+                                            IMedicationAdministration medicationAdministration, Integer amount, IMedication medication, Integer medicationRemaining, Boolean isCounseled);
 
     /**
      * Generate and provide an instance of ProblemItem.

@@ -38,6 +38,7 @@ import femr.data.models.mysql.MedicationInventory;
 import femr.ui.models.admin.inventory.DataGridFilter;
 import femr.ui.models.admin.inventory.DataGridSorting;
 import org.apache.commons.lang3.StringUtils;
+import org.joda.time.DateTime;
 import play.libs.Json;
 import femr.data.models.mysql.Medication;
 
@@ -255,7 +256,7 @@ public class InventoryService implements IInventoryService {
                 medicationInventory.setQuantity_total(quantityTotal);
                 medicationInventory = medicationInventoryRepository.update(medicationInventory);
             }
-            medicationItem = itemModelMapper.createMedicationItem(medicationInventory.getMedication(), medicationInventory.getQuantity_total(), medicationInventory.getQuantity_current());
+            medicationItem = itemModelMapper.createMedicationItem(medicationInventory.getMedication(), medicationInventory.getQuantity_total(), medicationInventory.getQuantity_current(), null);
             response.setResponseObject(medicationItem);
         } catch (Exception ex) {
 
@@ -265,24 +266,109 @@ public class InventoryService implements IInventoryService {
         return response;
     }
 
-    /*
-    /**
-     * {@inheritDoc}
 
+    /**
+    *{@inheritDoc}
+    **/
     @Override
-    public ServiceResponse<MedicationItem> setQuantityCurrent(int medicationId, int tripId, int quantityCurrent) {
+    public ServiceResponse<MedicationItem> setQuantityCurrent(int medicationId, int tripId, int newQuantity) {
 
         ServiceResponse<MedicationItem> response = new ServiceResponse<>();
+
+        ExpressionList<MedicationInventory> medicationInventoryExpressionList = QueryProvider.getMedicationInventoryQuery().where() .eq("medication.id", medicationId)
+                .eq("missionTrip.id", tripId);
+        IMedicationInventory medicationInventory;
+        MedicationItem medicationItem;
+        try {
+            //This should exist already, so no need to query for unique.
+            medicationInventory = medicationInventoryRepository.findOne(medicationInventoryExpressionList);
+            int medicationTotal = medicationInventory.getQuantity_total();
+            int medicationCurrent = medicationInventory.getQuantity_current();
+
+            //Currently left out to leave out editing Initial Quantity
+            // medicationInventory.setQuantity_total(medicationTotal - (medicationCurrent - newQuantity));
+
+            medicationInventory.setQuantity_current(newQuantity);
+
+            medicationInventory = medicationInventoryRepository.update(medicationInventory);
+            medicationItem = itemModelMapper.createMedicationItem(medicationInventory.getMedication(),  medicationInventory.getQuantity_current(), medicationInventory.getQuantity_total(), null);
+            response.setResponseObject(medicationItem);
+        } catch (Exception ex) {
+            response.addError("", ex.getMessage());
+        }
+
+        return response;
+
+    }
+
+    /**
+     *{@inheritDoc}
+     **/
+    @Override
+    public ServiceResponse<MedicationItem> deleteInventoryMedication(int medicationId, int tripId){
+        ServiceResponse<MedicationItem> response = new ServiceResponse<>();
+        ExpressionList<MedicationInventory> medicationInventoryExpressionList = QueryProvider.getMedicationInventoryQuery().where() .eq("medication.id", medicationId)
+                .eq("missionTrip.id", tripId);
+        IMedicationInventory medicationInventory;
+        MedicationItem medicationItem;
+        try {
+            //This should exist already, so no need to query for unique.
+            medicationInventory = medicationInventoryRepository.findOne(medicationInventoryExpressionList);
+            //Checks to see if medication was already deleted, then user wanted to undo delete
+            if(medicationInventory.getIsDeleted() != null)
+                medicationInventory.setIsDeleted(null);
+            else
+                medicationInventory.setIsDeleted(DateTime.now());
+            medicationInventory = medicationInventoryRepository.update(medicationInventory);
+            medicationItem = itemModelMapper.createMedicationItem(medicationInventory.getMedication(),  medicationInventory.getQuantity_current(), medicationInventory.getQuantity_total(), medicationInventory.getIsDeleted());
+            response.setResponseObject(medicationItem);
+        } catch (Exception ex) {
+            response.addError("", ex.getMessage());
+        }
+
         return response;
     }
 
     /**
      * {@inheritDoc}
-
+     */
     @Override
     public ServiceResponse<MedicationItem> subtractFromQuantityCurrent(int medicationId, int tripId, int quantityToSubtract) {
 
         ServiceResponse<MedicationItem> response = new ServiceResponse<>();
+        MedicationItem medicationItem = null;
+
+        ExpressionList<Medication> medicationExpressionList = QueryProvider.getMedicationQuery()
+                .where()
+                .eq("id", medicationId);
+        ExpressionList<MedicationInventory> medicationInventoryExpressionList = QueryProvider.getMedicationInventoryQuery()
+                .where()
+                .eq("medication_id", medicationId)
+                .eq("mission_trip_id", tripId);
+
+        try {
+
+
+            IMedication medication = medicationRepository.findOne(medicationExpressionList);
+            IMedicationInventory medicationInventory = medicationInventoryRepository.findOne(medicationInventoryExpressionList);
+            Integer currentQuantity = null;
+            Integer totalQuantity = null;
+
+            if (medicationInventory != null) {
+
+                medicationInventory.setQuantity_current(medicationInventory.getQuantity_current() - quantityToSubtract);
+                medicationInventory = medicationInventoryRepository.update(medicationInventory);
+                currentQuantity = medicationInventory.getQuantity_current();
+                totalQuantity = medicationInventory.getQuantity_total();
+            }
+
+            medicationItem = itemModelMapper.createMedicationItem(medication, currentQuantity, totalQuantity, null);
+        } catch (Exception ex) {
+
+            response.addError("", ex.getMessage());
+        }
+        response.setResponseObject(medicationItem);
+
         return response;
-    }  */
+    }
 }
